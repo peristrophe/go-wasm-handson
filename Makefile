@@ -6,7 +6,7 @@ DOCUMENTROOT := docs
 
 prepare: $(DOCUMENTROOT)/wasm_exec.js $(DOCUMENTROOT)/wasm_exec.html
 ifeq ($(shell which goexec),)
-	#go install github.com/shurcooL/goexec@latest
+	go install github.com/shurcooL/goexec@latest
 endif
 
 $(DOCUMENTROOT)/wasm_exec.js:
