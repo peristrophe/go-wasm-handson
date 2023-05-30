@@ -1,24 +1,28 @@
 SOURCEDIR    := src
 DOCUMENTROOT := public
+TARGET_CTX   := run
 
-.PHONY: prepare run clean
+.PHONY: prepare run test clean
 
 prepare:
 ifeq ($(shell which goexec),)
 	go install github.com/shurcooL/goexec@latest
 endif
 
+clean:
+	-rm -r $(DOCUMENTROOT)
+
 $(DOCUMENTROOT)/wasm_exec.js:
 	mkdir -p $(DOCUMENTROOT)
 	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.js $(DOCUMENTROOT)/
 
-$(DOCUMENTROOT)/wasm_exec.html:
+$(DOCUMENTROOT)/index.html:
 	mkdir -p $(DOCUMENTROOT)
-	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.html $(DOCUMENTROOT)/
-
-$(DOCUMENTROOT)/wasm_calc.html:
-	mkdir -p $(DOCUMENTROOT)
-	cp $(SOURCEDIR)/wasm_calc.html $(DOCUMENTROOT)/
+ifeq ($(TARGET_CTX),test)
+	cp $(shell go env GOROOT)/misc/wasm/wasm_exec.html $(DOCUMENTROOT)/index.html
+else
+	cp $(SOURCEDIR)/index.html $(DOCUMENTROOT)/
+endif
 
 $(DOCUMENTROOT)/test.wasm:
 	GOOS=js GOARCH=wasm go build -o $(DOCUMENTROOT)/test.wasm $(SOURCEDIR)/test.go
@@ -26,15 +30,16 @@ $(DOCUMENTROOT)/test.wasm:
 $(DOCUMENTROOT)/calc.wasm:
 	GOOS=js GOARCH=wasm go build -o $(DOCUMENTROOT)/calc.wasm $(SOURCEDIR)/calc.go
 
-run-test: prepare
+test: prepare
 	$(MAKE) clean
-	$(MAKE) $(DOCUMENTROOT)/wasm_exec.js $(DOCUMENTROOT)/wasm_exec.html $(DOCUMENTROOT)/test.wasm
+	$(MAKE) $(DOCUMENTROOT)/wasm_exec.js $(DOCUMENTROOT)/index.html $(DOCUMENTROOT)/test.wasm TARGET_CTX=test
+	@echo
+	@echo "ACCESS TO http://localhost:8080/"
 	goexec 'http.ListenAndServe(`:8080`, http.FileServer(http.Dir(`$(DOCUMENTROOT)/`)))'
 
-run-calc: prepare
+run: prepare
 	$(MAKE) clean
-	$(MAKE) $(DOCUMENTROOT)/wasm_exec.js $(DOCUMENTROOT)/wasm_calc.html $(DOCUMENTROOT)/calc.wasm
+	$(MAKE) $(DOCUMENTROOT)/wasm_exec.js $(DOCUMENTROOT)/index.html $(DOCUMENTROOT)/calc.wasm TARGET_CTX=run
+	@echo
+	@echo "ACCESS TO http://localhost:8080/"
 	goexec 'http.ListenAndServe(`:8080`, http.FileServer(http.Dir(`$(DOCUMENTROOT)/`)))'
-
-clean:
-	-rm -r $(DOCUMENTROOT)
